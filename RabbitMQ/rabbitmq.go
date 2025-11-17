@@ -73,6 +73,12 @@ func NewRabbitMQSub(exchangeName string) *RabbitMQ {
 	return rabbitmq
 }
 
+// Routing 路由模式
+func NewRabbitMQRouting(exchangeName string, routingKey string) *RabbitMQ {
+	rabbitmq := NewRabbitMQ("", exchangeName, routingKey)
+	return rabbitmq
+}
+
 // Simple 模式下的生产者
 func (r *RabbitMQ) PublishSimple(message string) {
 	// 1. 申请队列 如果队列不存在会自动创建 如果存在则跳过创建
@@ -231,7 +237,7 @@ func (r *RabbitMQ) ReceiveSub ()  {
 	r.failOnErr(err, "Failed to declare a queue")
 
 	// 绑定队列到exchange中
-	err = r.channel.QueueBind(
+	_ = r.channel.QueueBind(
 		q.Name,
 		// 在pub/sub模式下，这里的key需要置空
 		"",
@@ -240,7 +246,7 @@ func (r *RabbitMQ) ReceiveSub ()  {
 		nil,
 	)
 
-	// 2. 接收消息
+	// 3. 接收消息
 	msg, err := r.channel.Consume(
 		q.Name,
 		"",
@@ -251,7 +257,11 @@ func (r *RabbitMQ) ReceiveSub ()  {
 		nil,
 	)
 
-	// 3. 处理消息 使用协程处理消息
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// 4. 处理消息 使用协程处理消息
 	forever := make(chan bool)
 
 	go func ()  {
@@ -260,7 +270,109 @@ func (r *RabbitMQ) ReceiveSub ()  {
 		}	
 	}()
 
-	fmt.Println("退出请按CTRL + C\n")
+	fmt.Println("退出请按CTRL + C")
+
+	<-forever
+}
+
+
+// routing模式下 生产
+func (r *RabbitMQ) PublishRouting (message string)  {
+	// 1. 尝试创建交换机
+	err := r.channel.ExchangeDeclare(
+		r.Exchange,
+		// Routing模式下 kind需要设置为direct
+		"direct",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to declare an Exchange")
+
+	// 2. 发送消息
+	err = r.channel.Publish(
+		r.Exchange,
+		// 需要设置Routingkey
+		r.Key,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body: []byte(message),
+		},
+	)
+
+	r.failOnErr(err, "Failed to publish message")
+}
+
+// Routing 模式下 消费
+func (r *RabbitMQ) ReceiveRouting()  {
+	// 1. 尝试创建交换机
+	err := r.channel.ExchangeDeclare(
+		r.Exchange,
+		"direct",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to declare an Exchange.")
+
+	// 2. 创建队列
+	q, err := r.channel.QueueDeclare(
+		"",
+		false, 
+		false,
+		true,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to declare a queue.")
+
+	// 3. 绑定队列到交换机中
+	err = r.channel.QueueBind(
+		q.Name,
+		// 需要绑定routingkey
+		r.Key,
+		r.Exchange,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to bind queue.")
+
+	// 4. 接收消息
+	msg, err := r.channel.Consume(
+		q.Name,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	// 5. 使用协程处理消息
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// 5. 处理消息 使用协程处理消息
+	forever := make(chan bool)
+
+	go func ()  {
+		for d:= range msg {
+			log.Printf("Recevied a message: %s", d.Body)
+		}	
+	}()
+
+	fmt.Println("退出请按CTRL + C")
 
 	<-forever
 }
