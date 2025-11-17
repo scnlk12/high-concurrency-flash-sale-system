@@ -66,6 +66,13 @@ func NewRabbitMQSimple(queueName string) *RabbitMQ {
 	return rabbitmq
 }
 
+// Publish/Subscribe 订阅模式
+func NewRabbitMQSub(exchangeName string) *RabbitMQ {
+	// Subscribe模式下，queueName传空值，exchange需要传值，key为空
+	rabbitmq := NewRabbitMQ("", exchangeName, "")
+	return rabbitmq
+}
+
 // Simple 模式下的生产者
 func (r *RabbitMQ) PublishSimple(message string) {
 	// 1. 申请队列 如果队列不存在会自动创建 如果存在则跳过创建
@@ -153,5 +160,107 @@ func (r *RabbitMQ) ConsumeSimple() {
 
 	log.Printf("[*] Waiting for messages, To exit press CTRL + C")
 	// 阻塞主线程，让 goroutine 持续运行
+	<-forever
+}
+
+// 订阅模式 生产
+func (r *RabbitMQ) PublishPub(message string) {
+	// 1. 尝试创建交换机
+	err := r.channel.ExchangeDeclare(
+		r.Exchange,
+		// 广播类型
+		"fanout",
+		// 是否持久化
+		true,
+		// 是否自动删除
+		false,
+		// true 表示exchange不可以被client用来推送消息，禁用来进行exchange和exchange之间的绑定
+		false,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to declare an exchange")
+
+	// 2. 发送消息
+	err = r.channel.Publish(
+		r.Exchange,
+		"",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body: []byte(message),
+		},
+	) 
+
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+
+// 订阅模式 消费
+func (r *RabbitMQ) ReceiveSub ()  {
+	// 1. 创建交换机
+	err := r.channel.ExchangeDeclare(
+		r.Exchange,
+		// 交换机类型 广播
+		"fanout",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Fialed to declare an exchange")
+
+	// 2. 创建队列
+	q, err := r.channel.QueueDeclare(
+		// 随机生产队列名称
+		"",
+		false,
+		false,
+		// 排他性 true
+		true,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to declare a queue")
+
+	// 绑定队列到exchange中
+	err = r.channel.QueueBind(
+		q.Name,
+		// 在pub/sub模式下，这里的key需要置空
+		"",
+		r.Exchange,
+		false,
+		nil,
+	)
+
+	// 2. 接收消息
+	msg, err := r.channel.Consume(
+		q.Name,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	// 3. 处理消息 使用协程处理消息
+	forever := make(chan bool)
+
+	go func ()  {
+		for d:= range msg {
+			log.Printf("Recevied a message: %s", d.Body)
+		}	
+	}()
+
+	fmt.Println("退出请按CTRL + C\n")
+
 	<-forever
 }
