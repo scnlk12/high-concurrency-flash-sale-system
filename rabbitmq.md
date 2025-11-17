@@ -21,7 +21,7 @@
 #### 工作模式 六种
 
 1. **Simple 模式**
-![RabbitMQ的Simple模式](RabbitMQ-Simple.png)
+![RabbitMQ的Simple模式](./figure/RabbitMQ-Simple.png)
 
 * 封装RabbitMQ
     * 属性：
@@ -60,13 +60,13 @@
                 <-forever
                 ```
 2. **工作模式**
-![RabbitMQ的Work模式](RabbitMQ-Work.png)
+![RabbitMQ的Work模式](./figure/RabbitMQ-Work.png)
 * 使用场景：生产消息的速度大于消费速度时，使用work模式可以增加系统的性能和处理能力，起到负载均衡作用
 
 * 队列消息挤压较大时，可以开启多个消费端来处理挤压消息
 
 3. **Publish/Subscribe 订阅模式**
-![RabbitMQ的Publish/Subscribe模式](RabbitMQ-Publish.png)
+![RabbitMQ的Publish/Subscribe模式](./figure/RabbitMQ-Publish.png)
 * 消息被路由传递给多个队列，一个消息被多个消费者获取
 * 封装RabbitMQ
     * 方法：
@@ -82,22 +82,21 @@
             * 使用协程处理消息
 
 4. **Routing 路由模式**
-![RabbitMQ的Routing模式](RabbitMQ-Routing.png)
+![RabbitMQ的Routing模式](./figure/RabbitMQ-Routing.png)
 * 从生产端指定消费端进行消费
 * 与订阅模式代码基本相同，将`Exchange`的`kind`从`fanout`修改为`direct`
 
 5. **Topic 话题模式**
-![RabbitMQ的Topic模式](RabbitMQ-Topic.png)
+![RabbitMQ的Topic模式](./figure/RabbitMQ-Topic.png)
 * 消息的目标queue可用BindingKey以通配符的方式指定(#表示一个或多个词，*表示一个词)
 * Exchange的类型需要修改为`topic`
 
-```go
-rabbitmq1 := RabbitMQ.NewRabbitMQTopic("newProductTopic", "#")
-	rabbitmq1.ReceiveTopic()
-```
+    ```go
+    rabbitmq1 := RabbitMQ.NewRabbitMQTopic("newProductTopic", "#")
+    rabbitmq1.ReceiveTopic()
+    ```
 
-```go
-rabbitmq2 := RabbitMQ.NewRabbitMQRouting("newProductRouting", "gf_test_2")
-	rabbitmq2.ReceiveRouting()
-}
-```
+    ```go
+    rabbitmq2 := RabbitMQ.NewRabbitMQRouting("newProductRouting", "gf_test_2")
+    rabbitmq2.ReceiveRouting()
+    ```
