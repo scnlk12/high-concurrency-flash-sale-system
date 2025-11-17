@@ -79,6 +79,12 @@ func NewRabbitMQRouting(exchangeName string, routingKey string) *RabbitMQ {
 	return rabbitmq
 }
 
+// Topic 话题模式
+func NewRabbitMQTopic(exchangeName string, routingKey string) *RabbitMQ {
+	rabbitmq := NewRabbitMQ("", exchangeName, routingKey)
+	return rabbitmq
+}
+
 // Simple 模式下的生产者
 func (r *RabbitMQ) PublishSimple(message string) {
 	// 1. 申请队列 如果队列不存在会自动创建 如果存在则跳过创建
@@ -374,5 +380,100 @@ func (r *RabbitMQ) ReceiveRouting()  {
 
 	fmt.Println("退出请按CTRL + C")
 
+	<-forever
+}
+
+// 话题模式 生产
+func (r *RabbitMQ) PublishTopic (message string) {
+	// 1. 尝试创建Exchange
+	err := r.channel.ExchangeDeclare(
+		r.Exchange,
+		// kind为topic类型
+		"topic",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to declare Exchange.")
+
+	// 2. 发送消息
+	err = r.channel.Publish(
+		r.Exchange,
+		r.Key,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body: []byte(message),
+		},
+	)
+
+	r.failOnErr(err, "Publish err.")
+}
+
+// 话题模式 消费
+// 注意key规则 
+// * 用于匹配一个单词 # 用于匹配多个单词(可以是零个)
+func (r *RabbitMQ) ReceiveTopic ()  {
+	// 1. 尝试创建Exchange
+	err := r.channel.ExchangeDeclare(
+		r.Exchange,
+		"topic",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to Declare Exchange.")
+
+	// 2. 创建队列
+	q, err := r.channel.QueueDeclare(
+		"",
+		true,
+		false,
+		true,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to declare queue")
+
+	// 3. 将queue绑定到Exchange中
+	err = r.channel.QueueBind(
+		q.Name,
+		r.Key,
+		r.Exchange,
+		false,
+		nil,
+	)
+
+	// 4. 接收消息
+	msg, err := r.channel.Consume(
+		q.Name,
+		"",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+
+	r.failOnErr(err, "Failed to Consume.")
+
+	forever := make(chan bool)
+	// 5. 使用协程处理消息
+	go func ()  {
+		for d := range msg {
+			log.Printf("Recevied a message: %s", d.Body)
+		}	
+	}()
+
+	fmt.Println("退出请按CTRL + C")
+	
 	<-forever
 }
