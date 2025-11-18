@@ -1,7 +1,15 @@
 package main
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/kataras/iris"
+	"github.com/kataras/iris/mvc"
+	"github.com/scnlk12/high-concurrency-flash-sale-system/backend/web/controllers"
+	"github.com/scnlk12/high-concurrency-flash-sale-system/common"
+	"github.com/scnlk12/high-concurrency-flash-sale-system/repositories"
+	"github.com/scnlk12/high-concurrency-flash-sale-system/services"
 )
 
 func main() {
@@ -27,8 +35,21 @@ func main() {
 		ctx.View("shared/error.html")
 	})
 
+	db, err := common.NewMysqlConn()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// 注册控制器
-	
+	productRepository := repositories.NewProductManager("product", db)
+	productService := services.NewProductService(productRepository)
+	productParty := app.Party("/product")
+	product := mvc.New(productParty)
+	product.Register(ctx, productService)
+	product.Handle(new(controllers.ProductController))
 	
 	// 启动服务
 	app.Run(
