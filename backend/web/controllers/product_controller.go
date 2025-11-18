@@ -83,3 +83,20 @@ func (p *ProductController) GetManager() mvc.View {
 		},
 	}
 }
+
+
+// 删除商品
+func (p *ProductController) GetDelete() {
+	idString := p.Ctx.URLParam("id")
+	id, err := strconv.ParseInt(idString, 10, 64)
+	if err != nil {
+		p.Ctx.Application().Logger().Debug(err)
+	}
+	isOk := p.ProductService.DeleteProductById(id)
+	if isOk {
+		p.Ctx.Application().Logger().Debug("删除商品成功, id为" + idString)
+	} else {
+		p.Ctx.Application().Logger().Debug("删除商品失败, id为" + idString)
+	}
+	p.Ctx.Redirect("/product/all")
+}
