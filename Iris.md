@@ -12,7 +12,7 @@ Model-View-Controller
 ### Iris MVC 目录
 
 * datamodels: 存放结构体
-* repositories：
+* repositories：数据库操作，实现的接口，创建封装类
 * services：
 * web：
     * controllers：
