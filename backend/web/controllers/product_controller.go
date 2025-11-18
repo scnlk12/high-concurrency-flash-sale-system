@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"strconv"
+
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/mvc"
 	"github.com/scnlk12/high-concurrency-flash-sale-system/common"
@@ -59,4 +61,25 @@ func (p *ProductController) PostAdd()  {
 		p.Ctx.Application().Logger().Debug(err)
 	}
 	p.Ctx.Redirect("/product/all")
+}
+
+// 修改商品页面
+func (p *ProductController) GetManager() mvc.View {
+	// 从路由中获取当前访问商品的productId
+	idString := p.Ctx.URLParam("id")
+	id, err := strconv.ParseInt(idString, 10, 16)
+	if err != nil {
+		p.Ctx.Application().Logger().Debug(err)
+	}
+	product, err := p.ProductService.GetProductById(id)
+	if err != nil {
+		p.Ctx.Application().Logger().Debug(err)
+	}
+
+	return mvc.View{
+		Name: "product/manager.html",
+		Data: iris.Map{
+			"product": product,
+		},
+	}
 }
