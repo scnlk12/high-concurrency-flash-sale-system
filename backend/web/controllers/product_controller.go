@@ -84,7 +84,6 @@ func (p *ProductController) GetManager() mvc.View {
 	}
 }
 
-
 // 删除商品
 func (p *ProductController) GetDelete() {
 	idString := p.Ctx.URLParam("id")
