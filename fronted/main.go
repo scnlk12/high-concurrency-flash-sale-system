@@ -55,6 +55,13 @@ func main() {
 	userPro.Register(userSerevice, ctx, sess.Start)
 	userPro.Handle(new(controllers.UserController))
 
+	// 注册product控制器
+	product := repositories.NewProductManager("product", db)
+	productService := services.NewProductService(product)
+	productPro := mvc.New(app.Party("/product"))
+	productPro.Register(productService, sess.Start)
+	productPro.Handle(new(controllers.ProductController))
+
 	app.Run(
 		iris.Addr("0.0.0.0:8082"),
 		// iris.WithoutVersionChecker,
