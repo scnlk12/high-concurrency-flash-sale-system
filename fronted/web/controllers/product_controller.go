@@ -1,15 +1,19 @@
 package controllers
 
 import (
+	"strconv"
+
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/mvc"
 	"github.com/kataras/iris/sessions"
+	"github.com/scnlk12/high-concurrency-flash-sale-system/datamodels"
 	"github.com/scnlk12/high-concurrency-flash-sale-system/services"
 )
 
 type ProductController struct {
 	Ctx            iris.Context
 	ProductService services.ProductService
+	OrderService   services.OrderService
 	Session        *sessions.Session
 }
 
@@ -23,6 +27,48 @@ func (p *ProductController) GetDetail() mvc.View {
 	return mvc.View{
 		Layout: "shared/productLayout.html",
 		Name:   "product/view.html",
+		Data: iris.Map{
+			"product": product,
+		},
+	}
+}
+
+func (p *ProductController) GetOrder() mvc.View {
+	productString := p.Ctx.URLParam("productId")
+	userId := p.Ctx.GetCookie("uid")
+	productId, err := strconv.Atoi(productString)
+	if err != nil {
+		p.Ctx.Application().Logger().Debug(err)
+	}
+	product, err := p.ProductService.GetProductById(int64(productId))
+	if err != nil {
+		p.Ctx.Application().Logger().Debug(err)
+	}
+	// 判断商品数量是否满足要求
+	if product.ProductNum > 0 {
+		// 扣除商品数量
+		product.ProductNum -= 1
+		// 在高并发大流量下会出现超卖情况
+		err := p.ProductService.UpdateProduct(product)
+		if err != nil {
+			p.Ctx.Application().Logger().Debug(err)
+		}
+
+		// 创建订单
+		userId, err := strconv.Atoi(userId)
+		if err != nil {
+			p.Ctx.Application().Logger().Debug(err)
+		}
+		order := &datamodels.Order{
+			UserId: int64(userId),
+			ProductId: int64(productId),
+			OrderStatus: datamodels.OrderSuccess,
+		}
+		p.OrderService.InsertOrder(order)
+	}
+	return mvc.View{
+		Layout: "shared/productLayout.html",
+		Name:   "product/result.html",
 		Data: iris.Map{
 			"product": product,
 		},

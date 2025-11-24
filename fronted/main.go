@@ -59,12 +59,14 @@ func main() {
 	// 注册product控制器
 	product := repositories.NewProductManager("product", db)
 	productService := services.NewProductService(product)
+	order := repositories.NewOrderManagerRepository("order", db)
+	orderService := services.NewOrderService(order)
 	productPro := mvc.New(app.Party("/product"))
 
 	// 引入中间件 权限控制
 	productPro.Router.Use(middleware.AuthConProduct)
 
-	productPro.Register(productService, sess.Start)
+	productPro.Register(productService, orderService, sess.Start)
 	productPro.Handle(new(controllers.ProductController))
 
 	app.Run(
