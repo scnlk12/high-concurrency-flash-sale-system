@@ -8,6 +8,7 @@ import (
 	"github.com/kataras/iris/mvc"
 	"github.com/kataras/iris/sessions"
 	"github.com/scnlk12/high-concurrency-flash-sale-system/common"
+	"github.com/scnlk12/high-concurrency-flash-sale-system/fronted/middleware"
 	"github.com/scnlk12/high-concurrency-flash-sale-system/fronted/web/controllers"
 	"github.com/scnlk12/high-concurrency-flash-sale-system/repositories"
 	"github.com/scnlk12/high-concurrency-flash-sale-system/services"
@@ -59,6 +60,10 @@ func main() {
 	product := repositories.NewProductManager("product", db)
 	productService := services.NewProductService(product)
 	productPro := mvc.New(app.Party("/product"))
+
+	// 引入中间件 权限控制
+	productPro.Router.Use(middleware.AuthConProduct)
+
 	productPro.Register(productService, sess.Start)
 	productPro.Handle(new(controllers.ProductController))
 
