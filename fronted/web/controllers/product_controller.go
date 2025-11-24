@@ -44,6 +44,8 @@ func (p *ProductController) GetOrder() mvc.View {
 	if err != nil {
 		p.Ctx.Application().Logger().Debug(err)
 	}
+	var orderId int64
+	showMessage := "抢购失败!"
 	// 判断商品数量是否满足要求
 	if product.ProductNum > 0 {
 		// 扣除商品数量
@@ -64,13 +66,19 @@ func (p *ProductController) GetOrder() mvc.View {
 			ProductId: int64(productId),
 			OrderStatus: datamodels.OrderSuccess,
 		}
-		p.OrderService.InsertOrder(order)
+		orderId, err = p.OrderService.InsertOrder(order)
+		if err != nil {
+			p.Ctx.Application().Logger().Debug(err)
+		} else {
+			showMessage = "抢购成功!"
+		}
 	}
 	return mvc.View{
 		Layout: "shared/productLayout.html",
 		Name:   "product/result.html",
 		Data: iris.Map{
-			"product": product,
+			"orderId": orderId,
+			"showMessage": showMessage,
 		},
 	}
 }
