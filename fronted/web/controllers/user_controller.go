@@ -1,9 +1,12 @@
 package controllers
 
 import (
+	"strconv"
+
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/mvc"
 	"github.com/kataras/iris/sessions"
+	"github.com/scnlk12/high-concurrency-flash-sale-system/common"
 	"github.com/scnlk12/high-concurrency-flash-sale-system/datamodels"
 	"github.com/scnlk12/high-concurrency-flash-sale-system/services"
 )
@@ -48,4 +51,33 @@ func (c *UserController) PostRegister() {
 	
 	c.Ctx.Redirect("/user/login")
 	return 
+}
+
+// 用户登录
+
+// 请求登录页面
+func (u *UserController) GetLogin() mvc.View {
+	return mvc.View{
+		Name: "user/login.html",
+	}
+}
+
+// 登录操作
+func (u *UserController) PostLogin() mvc.Response {
+	var (
+		userName = u.Ctx.FormValue("userName")
+		password = u.Ctx.FormValue("password")
+	)
+
+	user, isOk := u.Service.IsPwdSuccess(userName, password)
+	if !isOk {
+		return mvc.Response{
+			Path: "/user/login",
+		}
+	}
+	common.GlobalCookie(u.Ctx, "uid", strconv.FormatInt(user.Id, 10))
+	u.Session.Set("userId", strconv.FormatInt(user.Id, 10))
+	return mvc.Response {
+		Path: "/product/",
+	}
 }

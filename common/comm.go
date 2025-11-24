@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/kataras/iris"
 )
 
 // 根据结构体中的sql标签映射数据到结构体中并转换类型
@@ -48,4 +50,9 @@ func TypeConversion(value string, ntype string) (reflect.Value, error)  {
 	} else if ntype == "int8" {
 		
 	}
+}
+
+
+func GlobalCookie(ctx iris.Context, key string, value string) {
+
 }
