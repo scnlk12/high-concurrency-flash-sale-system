@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"html/template"
+	"os"
 	"strconv"
 
 	"github.com/kataras/iris"
@@ -15,6 +17,37 @@ type ProductController struct {
 	ProductService services.ProductService
 	OrderService   services.OrderService
 	Session        *sessions.Session
+}
+
+var (
+	htmlOutPath = "./fronted/web/htmlProductShow/" // 生成的html保存目录
+	templatePath = "./fronted/web/views/template/" // 静态文件模板目录
+)
+
+// 生成html静态文件
+func generateStaticHtml(ctx iris.Context, template *template.Template,
+fileName string, product *datamodels.Product) {
+	// 判断静态文件是否存在
+	if exist(fileName) {
+		err := os.Remove(fileName)
+		if err != nil {
+			ctx.Application().Logger().Error(err)
+		}
+	}
+
+	// 生成静态文件
+	file, err := os.OpenFile(fileName, os.O_CREATE, os.ModePerm)
+	if err != nil {
+		ctx.Application().Logger().Error(err)
+	}
+	defer file.Close()
+	template.Execute(file, &product)
+}
+
+// 判断文件是否存在
+func exist(filename string) bool {
+	_, err := os.Stat(filename)
+	return err == nil || os.IsExist(err)
 }
 
 // 获取订单详情页面
