@@ -63,7 +63,7 @@ fileName string, product *datamodels.Product) {
 	}
 
 	// 生成静态文件
-	file, err := os.OpenFile(fileName, os.O_CREATE, os.ModePerm)
+	file, err := os.OpenFile(fileName, os.O_CREATE | os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		ctx.Application().Logger().Error(err)
 	}
