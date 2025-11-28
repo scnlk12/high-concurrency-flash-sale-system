@@ -3,6 +3,7 @@ package controllers
 import (
 	"html/template"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/kataras/iris"
@@ -23,6 +24,32 @@ var (
 	htmlOutPath = "./fronted/web/htmlProductShow/" // 生成的html保存目录
 	templatePath = "./fronted/web/views/template/" // 静态文件模板目录
 )
+
+// 生成html静态文件控制器
+func (p *ProductController) GetGenerateHtml() {
+	// 获取productId
+	productString := p.Ctx.URLParam("productId")
+	productId, err := strconv.Atoi(productString)
+	if err != nil {
+		p.Ctx.Application().Logger().Debug(err)
+	}
+	// 1. 获取模板文件地址
+	contentTmp, err := template.ParseFiles(filepath.Join(templatePath, "product.html"))
+	if err != nil {
+		p.Ctx.Application().Logger().Debug(err)
+	}
+	// 2. 获取html生成路径
+	fileName := filepath.Join(htmlOutPath, "htmlProduct.html")
+
+	// 3. 获取模板渲染数据
+	product, err := p.ProductService.GetProductById(int64(productId))
+	if err != nil {
+		p.Ctx.Application().Logger().Debug(err)
+	}
+
+	// 4. 生成静态文件
+	generateStaticHtml(p.Ctx, contentTmp, fileName, product)
+}
 
 // 生成html静态文件
 func generateStaticHtml(ctx iris.Context, template *template.Template,
